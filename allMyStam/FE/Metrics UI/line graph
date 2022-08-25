@@ -1,0 +1,81 @@
+  genXDateTicks(numOfTicks = 6): Date[] {
+    const dateTicks: Date[] = [];
+
+    // Convert Dates to start of the day
+    // const dates: Date[] = this.dataSource.map(d => {
+    //   const startDay = new Date(d.time);
+    //   startDay.setUTCHours(0, 0, 0, 0);
+    //   return startDay;
+    // });
+
+     const dates: Date[] = this.dataSource.map(d => {
+      const startDay = new Date(d.time);
+      return startDay;
+      startDay.setUTCHours(0, 0, 0, 0);
+      return startDay;
+    });
+
+    console.log(dates);
+
+    dates.sort((a, b) => a.getTime() - b.getTime());
+
+    const endDate = dates[dates.length - 1];
+
+    console.log(new Date(endDate) );
+
+    //endDate.setDate(dates[dates.length - 1].getDate() + 1)
+
+    console.log(endDate);
+
+
+    const daysDiff: number = this.getDaysDiff(dates[0], dates[dates.length - 1]);
+    let dist: number = Math.ceil(daysDiff / numOfTicks);
+    let remainder: number = daysDiff % numOfTicks;
+    let hasReminder = 0;
+    let tickDate = dates[0];
+
+    dateTicks.push(tickDate);
+    for (let i = 0; i < numOfTicks - 1; i++) {
+      tickDate = new Date(tickDate);
+
+      if (remainder !== 0) {
+        hasReminder = 1;
+        remainder--;
+      } else {
+        hasReminder = 0;
+      }
+
+      tickDate.setDate(tickDate.getDate() + dist + hasReminder);
+
+      dateTicks.push(tickDate);
+    }
+
+    return dateTicks;
+  }
+
+
+
+    // private generateYAxisTickValues(maxValue: number, numOfTicks = 5, minValue: number = 0) {
+  //   let tickValues = [0];
+  //   let gapValue = Math.ceil(maxValue / (numOfTicks - 1));
+  //   let currentValue = 0;
+  //   for (let i = 1; i < numOfTicks; i++) {
+  //     currentValue += gapValue;
+  //     tickValues.push(currentValue);
+  //   }
+
+  //   return tickValues;
+  // }
+
+  // private generateYAxisTickValues(tickSpace: number) {
+  //   let tickValues = [0];
+  //   for (let i = 1; i <= 7; i++) {
+  //     let value = Math.round(tickSpace * i);
+  //     if (value > 9) {
+  //       value = Math.ceil(value / 5) * 5;
+  //     }
+
+  //     tickValues.push(value);
+  //   }
+  //   return tickValues;
+  // }

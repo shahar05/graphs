@@ -1,0 +1,153 @@
+
+// func (s *Service) GetMetrics(tenantId int32, metrics []string, seconds int, minDate int64, maxDate int64) MetricsEntity {
+func (s *Service) GetMetrics(tenantId int32, queryModel *GetMetricsRequestModel) MetricsEntity {
+
+	metricsEntityResponse := MetricsEntity{Metrics: []MetricEntity{}}
+
+	var metricsModel []*CreateMetricModel
+
+	err := s.context.Db.Select(&metricsModel, `SELECT m.query, m.metric_id, m.metric_description , m.title, m.sub_title FROM metrics m WHERE m.metric_id IN ($1) `, queryModel.Metrics)
+
+	if err != nil {
+		return metricsEntityResponse
+	}
+
+	var metricModel *CreateMetricModel
+
+	for i, metricName := range queryModel.Metrics {
+
+		metricModel = findMetricModel(metricName, metricsModel) // TODO if metricQuery == nil
+
+		metricEntity, err := s.GetMetric(tenantId, metricName, queryModel.AggregateSeconds, queryModel.MinDate, queryModel.MaxDate, *metricModel.Query)
+
+		if err != nil {
+			golog.Errorf("Error getting metric %s (%d/%d): %s", metricName, i, len(queryModel.Metrics), err)
+			continue // Skipping to Next Metric that can be found
+		}
+
+		metricsEntityResponse.Metrics = append(metricsEntityResponse.Metrics, *metricEntity)
+	}
+
+	return metricsEntityResponse
+}
+
+type CreateMetricModel struct {
+	MetricId    string              `db:"metric_id" json:"name"`
+	Title       *string             `db:"title" json:"title"`
+	Description *string             `db:"metric_description" json:"description"`
+	Query       *[]MetricQueryModel `json:"query, omitempty"`
+}
+
+type MetricQueryModel struct {
+	QueryId     *string `db:"query_id" json:"query_id,omitempty"`
+	Query       *string `db:"query" json:"query"`
+	Title       *string `db:"title" json:"title"`
+	Description *string `db:"description" json:"description"`
+}
+
+type GetMetricsRequestModel struct {
+	Metrics          []string `json:"metrics"`
+	MinDate          int64    `json:"minDate"`
+	MaxDate          int64    `json:"maxDate"`
+	AggregateSeconds int      `json:"aggregateSeconds"`
+}
+
+type MetricQueryRelation struct {
+	QueryId  *string `db:"query_id"`
+	MetricId string  `db:"metric_id"`
+}
+
+// type CreateMetricModel struct {
+// 	Name  string  `db:"metric_id" json:"name"`
+// 	Title *string `db:"title" json:"title"`
+// 	// SubTitle    *string `db:"sub_title" json:"subTitle"`
+// 	Query       *[]QueryTitleModel `db:"query_title" json:"query,omitempty"`
+// 	Description *string            `db:"metric_description" json:"description"`
+// 	//Type        int    `json:"type"` //Create Enum For that
+// }
+
+
+
+a.Post("/", func(ctx iris.Context) {
+
+	tenantID := general.GetTenantID(ctx)
+
+	queryModel := &GetMetricsRequestModel{}
+
+	if !core.ReadAndValidate(ctx, queryModel) {
+		golog.Errorf("incorrect query model")
+		return
+	}
+
+	golog.Debugf("handling api call /m/metrics %+v", queryModel)
+
+	met := svc.GetMetrics(tenantID, queryModel) // TODO: Error handling: check met Object if nill && GetMetrics should emit error if needed
+
+	res := search.QueryResponseModel{
+		Total: len(met.Metrics),
+		Items: met,
+	}
+
+	golog.Debugf("result for /m/metrics with %+v is %+v", queryModel, res)
+
+	ctx.JSON(res)
+})
+
+a.Get("/", func(ctx iris.Context) { // TODO: Change to ==> /MetaData route ==> /m/metrics/metadata
+	metricsModel, err := svc.getMetricModel()
+
+	if err != nil {
+		golog.Error(err)
+		return
+	}
+
+	ctx.JSON(metricsModel)
+})
+
+a.Get("/names", func(ctx iris.Context) {
+	metricsNames := make([]string, 0, len(metricQueryMap))
+
+	for metricName := range metricQueryMap {
+		metricsNames = append(metricsNames, metricName)
+	}
+
+	ctx.JSON(metricsNames)
+})
+
+a.Post("/create", func(ctx iris.Context) {
+	createMetricModel := &CreateMetricModel{}
+
+	if !core.ReadAndValidate(ctx, createMetricModel) {
+		return
+	}
+
+	err := svc.CreateNewMetric(createMetricModel)
+
+	ctx.JSON(err)
+})
+
+
+
+func (s *Service) GetMetrics(tenantId int32, queryModel *GetMetricsRequestModel) []*MetricsEntity {
+	metricsEntities := make([]*MetricsEntity, 0, len(queryModel.Metrics))
+	var metricsModel []*CreateMetricModel
+	err := s.context.Db.Select(&metricsModel, `SELECT m.metric_id, m.metric_description , m.title FROM metrics m WHERE m.metric_id IN ($1) `, queryModel.Metrics)
+
+	if err != nil {
+		golog.Errorf("Failed to get those metrics: %s \n the error is: %s", strings.Join(queryModel.Metrics, ", "), err)
+		return metricsEntities
+	}
+
+	/*
+	Now I have All metrics now  i need to get all the queries of the metrics hence i need to to for of all metrics and get the queries or I just can get the Qeueries 
+	*/
+
+}
+
+
+err := s.context.Db.Select(&metricsModel,
+	`SELECT m.metric_id, m.metric_description , m.title 
+	 FROM metrics m INNER JOIN queries as q INNER JOIN metrics_queries ON m.metric_id = q.metric_id 
+	 WHERE m.metric_id IN ($1) 
+	 GROUP BY metric_id`,
+	queryModel.Metrics)

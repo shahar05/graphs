@@ -1,0 +1,17 @@
+package metrics
+
+type TimeSeriesEntity struct {
+	Key   uint64  `db:"Key" json:"key"`
+	Value float64 `db:"Value" json:"value"`
+}
+type MetricEntity struct {
+	Name        string             `json:"name"` // Metric ID
+	Title       string             `json:"title"`
+	Description string             `json:"description"`
+	TimeSeries  []TimeSeriesEntity `json:"timeSeries"`
+}
+
+type MetricsEntity struct {
+	Title   string         `json:"title"`
+	Metrics []MetricEntity `json:"metrics"`
+}

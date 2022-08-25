@@ -1,0 +1,84 @@
+<ng-template #normal>
+
+<div class="metrics-dashboard-container" *ngIf="metricForm">
+
+
+    <div class="inputs-container" [formGroup]="metricForm">
+        <tenant-picker (tenantChanged)="getMetrics()"></tenant-picker>
+
+        <div class="date-picker-container ml-4">
+            <mat-form-field appearance="outline">
+
+                <mat-date-range-input [rangePicker]="picker">
+                    <input matStartDate formControlName="startDate" placeholder="Start date">
+                    <input matEndDate formControlName="endDate" placeholder="End date">
+                </mat-date-range-input>
+
+                <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+
+                <mat-date-range-picker #picker></mat-date-range-picker>
+
+            </mat-form-field>
+        </div>
+
+
+        <div class="aggregation-time-picker-container ml-4">
+            <mat-form-field appearance="outline">
+                <mat-label>Step</mat-label>
+                <mat-select formControlName="aggregationTime">
+                    <mat-option *ngFor="let aggregationTimeItem of aggregationTimeList" [value]="aggregationTimeItem">
+                        {{aggregationTimeItem.text}}
+                    </mat-option>
+                </mat-select>
+
+            </mat-form-field>
+        </div>
+    </div>
+
+    <div class="metrics-and-selection-container">
+        <div class="metrics-container ">
+            <div [class.d-none]="metricConfig.hide" class="metric-container"
+                *ngFor="let metricConfig of metricsConfig; let i = index">
+                <card-line-graph [config]="metricConfig.metricCardConfig"></card-line-graph>
+            </div>
+        </div>
+
+        <div class="selection-container ">
+
+            <div class="mt-2 mb-4 pl-4 metrics-list-container">
+                <div class="selection-title">
+                    Metrics
+                </div>
+                    <metrics-names-list [metricsConfig]="metricsConfig"
+                    (selectedMetricsChanged)="setMetricsNames($event)"></metrics-names-list>
+            </div>
+
+
+            <div class="mb-2 d-flex flex-column">
+
+                <div class="d-flex justify-content-center mt-2">
+
+                    <button class="primary btn med pointer p-2" (click)="generatePdf()">
+                        Generate Report
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+</div>
+
+</ng-template>
+
+<div *ngIf="reportData else normal;">
+    <editable-report [reportData]="reportData" (goBackClicked)="clearReportData()"></editable-report>
+</div>
+
+
+
+
+<div>
+ <button (click)="addGraphToDB()" > Add Graph </button>
+</div>
